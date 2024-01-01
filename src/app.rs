@@ -4,6 +4,7 @@ use crate::banner::Banner;
 use crate::find_image::{FindImage, Image};
 use crate::add_image::AddImage;
 use crate::utils;
+use std::rc::Rc;
 use solana_client_wasm::{
     WasmClient,
     solana_sdk::pubkey::Pubkey
@@ -11,6 +12,7 @@ use solana_client_wasm::{
 
 #[component]
 pub fn App() -> impl IntoView {
+    let client = Rc::new(WasmClient::new(utils::RPC_URL));
     let (tab, set_tab) = create_signal(0);
     let (pubkey, set_pubkey) = create_signal(String::new());
     let (pda, set_pda) = create_signal::<Option<Pubkey>>(None);
@@ -32,10 +34,10 @@ pub fn App() -> impl IntoView {
                     if let None = pda() {
                         view! {<FindImage set_pda=set_pda pubkey=pubkey/>}
                     } else {
-                        view! {<Image pda=pda/>}
+                        view! {<Image pda=pda set_pda=set_pda client=client.clone()/>}
                     }
                 } else {
-                    view! {<AddImage pubkey=pubkey/>}
+                    view! {<AddImage pubkey=pubkey client=client.clone()/>}
                 }
             }
         </div>

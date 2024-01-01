@@ -27,3 +27,10 @@ export async function trustedConnect() {
         return "";
     }
 }
+
+export async function sendTransaction(transaction) {
+    const provider = getProvider();
+    const {signature} = await provider.signAndSendTransaction(transaction);
+
+    alert(signature);
+}

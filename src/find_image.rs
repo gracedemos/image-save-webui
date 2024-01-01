@@ -1,7 +1,10 @@
 use leptos::*;
+use std::rc::Rc;
 use crate::utils;
+use crate::utils::Image;
 use solana_client_wasm::{
-    solana_sdk::pubkey::Pubkey
+    solana_sdk::{pubkey::Pubkey, signature::Signable},
+    WasmClient
 };
 
 #[component]
@@ -24,14 +27,36 @@ pub fn FindImage(set_pda: WriteSignal<Option<Pubkey>>, pubkey: ReadSignal<String
 }
 
 #[component]
-pub fn Image(pda: ReadSignal<Option<Pubkey>>) -> impl IntoView {
+pub fn Image(pda: ReadSignal<Option<Pubkey>>, set_pda: WriteSignal<Option<Pubkey>>, client: Rc<WasmClient>) -> impl IntoView {
     let pda = pda()
         .unwrap();
+    let (data, set_data) = create_signal(Vec::<u8>::new());
+    let future = async move {
+        let temp_data = client.get_account_data(&pda)
+            .await
+            .unwrap();
+        set_data(temp_data);
+    };
+    wasm_bindgen_futures::spawn_local(future);
 
-    view! {
-        <div class="flex flex-col bg-slate-400 p-4 rounded w-1/3 m-auto">
-            <h1>{pda.to_string()}</h1>
-        </div>
+    let image: Result<Image, Box<bincode::ErrorKind>> = bincode::deserialize(&data());
+
+    if let Ok(img) = image {
+        view! {
+            <div class="flex flex-col bg-slate-400 p-4 rounded w-1/3 m-auto items-center">
+                <img src={img.url}/>
+                <button class="bg-slate-600 p-4 rounded text-slate-200 hover:bg-slate-800 w-full"
+                on:click=move |_| set_pda(None)>Back</button>
+            </div>
+        }
+    } else {
+        view! {
+            <div class="flex flex-col bg-slate-400 p-4 rounded w-1/3 m-auto items-center">
+                <h1 class="p-4 mb-4">Image Not Found</h1>
+                <button class="bg-slate-600 p-4 rounded text-slate-200 hover:bg-slate-800 w-full"
+                on:click=move |_| set_pda(None)>Back</button>
+            </div>
+        }
     }
 }
 
